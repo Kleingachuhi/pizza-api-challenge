@@ -1,4 +1,4 @@
-from server import db 
+from server import db
 
 class Restaurant(db.Model):
     __tablename__ = 'restaurants'
@@ -10,16 +10,22 @@ class Restaurant(db.Model):
     restaurant_pizzas = db.relationship("RestaurantPizza", backref="restaurant", cascade="all, delete-orphan")
 
     def to_dict(self):
-          return {
-        "id": self.id,
-        "name": self.name,
-        "address": self.address,
-        "pizzas": [
-            {
-                "id": rp.pizza.id,
-                "name": rp.pizza.name,
-                "ingredients": rp.pizza.ingredients
-            }
-            for rp in self.restaurant_pizzas
-        ]
-    }
+        return {
+            "id": self.id,
+            "name": self.name,
+            "address": self.address
+        }
+
+    def to_dict_with_pizzas(self):
+        return {
+            "id": self.id,
+            "name": self.name,
+            "address": self.address,
+            "pizzas": [
+                {
+                    "id": rp.pizza.id,
+                    "name": rp.pizza.name,
+                    "ingredients": rp.pizza.ingredients
+                } for rp in self.restaurant_pizzas
+            ]
+        }

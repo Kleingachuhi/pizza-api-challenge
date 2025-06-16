@@ -16,4 +16,4 @@ def get_restaurant_by_id(id):
     if not restaurant:
         return jsonify({"error": "Restaurant not found"}), 404
 
-    return jsonify(restaurant.to_dict()), 200
+    return jsonify(restaurant.to_dict_with_pizzas()), 200
