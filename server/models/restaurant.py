@@ -13,5 +13,6 @@ class Restaurant(db.Model):
         return {
             "id": self.id,
             "name": self.name,
-            "address": self.address
+            "address": self.address,
+            "pizzas": [rp.pizza.to_dict() for rp in self.restaurant_pizzas]
         }
