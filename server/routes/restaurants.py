@@ -11,8 +11,9 @@ def get_restaurants():
     return jsonify(response), 200
 
 @restaurants_bp.route('/restaurants/<int:id>', methods=['GET'])
-def get_restaurant(id):
+def get_restaurant_by_id(id):
     restaurant = Restaurant.query.get(id)
     if not restaurant:
         return jsonify({"error": "Restaurant not found"}), 404
+
     return jsonify(restaurant.to_dict()), 200

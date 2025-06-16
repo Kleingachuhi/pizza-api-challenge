@@ -10,9 +10,16 @@ class Restaurant(db.Model):
     restaurant_pizzas = db.relationship("RestaurantPizza", backref="restaurant", cascade="all, delete-orphan")
 
     def to_dict(self):
-        return {
-            "id": self.id,
-            "name": self.name,
-            "address": self.address,
-            "pizzas": [rp.pizza.to_dict() for rp in self.restaurant_pizzas]
-        }
+          return {
+        "id": self.id,
+        "name": self.name,
+        "address": self.address,
+        "pizzas": [
+            {
+                "id": rp.pizza.id,
+                "name": rp.pizza.name,
+                "ingredients": rp.pizza.ingredients
+            }
+            for rp in self.restaurant_pizzas
+        ]
+    }
