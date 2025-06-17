@@ -1,38 +1,65 @@
-from flask import Blueprint, request, jsonify
-from server.models import RestaurantPizza, Restaurant, Pizza
 from server import db
+from flask import Blueprint, request, jsonify, abort
+from server.models import RestaurantPizza, Restaurant, Pizza
+from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 
 restaurant_pizza_bp = Blueprint('restaurant_pizzas', __name__)
 
+# Add GET endpoint to fetch all restaurant_pizza associations
+@restaurant_pizza_bp.route('/restaurant_pizzas', methods=['GET'])
+def get_restaurant_pizzas():
+    try:
+        restaurant_pizzas = RestaurantPizza.query.all()
+        return jsonify([{
+            "id": rp.id,
+            "price": rp.price,
+            "pizza": rp.pizza.to_dict(),
+            "restaurant": rp.restaurant.to_dict()
+        } for rp in restaurant_pizzas]), 200
+    except SQLAlchemyError:
+        abort(500, description="Database error occurred")
+
+# Keep existing POST endpoint for creating new associations
 @restaurant_pizza_bp.route('/restaurant_pizzas', methods=['POST'])
 def create_restaurant_pizza():
-    data = request.json
+    data = request.get_json()
     
     if not data or not all(key in data for key in ['price', 'pizza_id', 'restaurant_id']):
-        return jsonify({"errors": ["Missing required fields"]}), 400
+        abort(400, description="Missing required fields")
     
     try:
         price = int(data['price'])
         if not 1 <= price <= 30:
-            return jsonify({"errors": ["Price must be between 1 and 30"]}), 400
+            abort(400, description="Price must be between 1 and 30")
     except ValueError:
-        return jsonify({"errors": ["Price must be a number"]}), 400
-
-    pizza = Pizza.query.get(data['pizza_id'])
-    restaurant = Restaurant.query.get(data['restaurant_id'])
-    if not pizza or not restaurant:
-        return jsonify({"errors": ["Pizza or restaurant not found"]}), 404
+        abort(400, description="Price must be an integer")
 
     try:
-        new_rp = RestaurantPizza(
-            price=price,
-            pizza_id=data['pizza_id'],
-            restaurant_id=data['restaurant_id']
-        )
-        db.session.add(new_rp)
-        db.session.commit()
+        restaurant = Restaurant.query.get(data['restaurant_id'])
+        pizza = Pizza.query.get(data['pizza_id'])
         
-        return jsonify(pizza.to_dict()), 201
-    except Exception as e:
+        if not restaurant or not pizza:
+            abort(404, description="Restaurant or Pizza not found")
+
+        restaurant_pizza = RestaurantPizza(
+            price=price,
+            restaurant_id=data['restaurant_id'],
+            pizza_id=data['pizza_id']
+        )
+
+        db.session.add(restaurant_pizza)
+        db.session.commit()
+
+        return jsonify({
+            "id": restaurant_pizza.id,
+            "price": restaurant_pizza.price,
+            "pizza": pizza.to_dict(),
+            "restaurant": restaurant.to_dict()
+        }), 201
+
+    except IntegrityError:
         db.session.rollback()
-        return jsonify({"errors": [str(e)]}), 400
+        abort(400, description="This pizza-restaurant combination already exists")
+    except SQLAlchemyError:
+        db.session.rollback()
+        abort(500, description="Database error occurred")
